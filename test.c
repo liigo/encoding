@@ -30,13 +30,15 @@ int main()
 	test("Liigo%U0002A6A5%U0002B81D", "%u", "4.txt");
 
 	{
-		int bytes;
+		int bytes = 0;
 		int codepoint = 0;
-		unsigned char utf8[] = { 0xe6,0x98,0xaf, 0xe8,0x80,0x81, 0xe5,0xa4,0xa7, // 是老大
-						0xe4,0xba,0x8e, 0xe8,0xae,0xba, 0xe5,0x9d,0x9b, // 于论坛
-						0xe9,0xbd,0x89, 0xe7,0x88,0xa8, // 齉爨
-						0xF0,0xAA,0x9A,0xA5, 0xF0,0xAB,0xA0,0x9D, // 龍×4, 敞+鱼+电（上中下结构，鱼无横），每字UTF-8编码需4字节
-						0x00, };
+		unsigned char utf8[] = {
+			0xe6,0x98,0xaf, 0xe8,0x80,0x81, 0xe5,0xa4,0xa7, // 是老大
+			0xe4,0xba,0x8e, 0xe8,0xae,0xba, 0xe5,0x9d,0x9b, // 于论坛
+			0xe9,0xbd,0x89, 0xe7,0x88,0xa8, // 齉爨
+			0xF0,0xAA,0x9A,0xA5, 0xF0,0xAB,0xA0,0x9D, // 龍×4, 敞+鱼+电（上中下结构，鱼无横），每字UTF-8编码需4字节
+			0x00,
+		};
 
 		codepoint = UTF8_to_Codepoint(utf8 + 0, &bytes); assert(codepoint==0x662F && bytes==3); // 是
 		codepoint = UTF8_to_Codepoint(utf8 + 3, &bytes); assert(codepoint==0x8001 && bytes==3); // 老
@@ -48,11 +50,38 @@ int main()
 		codepoint = UTF8_to_Codepoint(utf8 +21, &bytes); assert(codepoint==0x7228 && bytes==3); // 爨
 		codepoint = UTF8_to_Codepoint(utf8 +24, &bytes); assert(codepoint==0x0002A6A5 && bytes==4); // 龍×4
 		codepoint = UTF8_to_Codepoint(utf8 +28, &bytes); assert(codepoint==0x0002B81D && bytes==4); // 敞+鱼+电（上中下结构，鱼无横）
-		
+
 		// test invalid utf8 stream
 		utf8[0] = 0xFF; codepoint = UTF8_to_Codepoint(utf8 + 0, NULL); assert(codepoint == -1);
 		utf8[4] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 3, NULL); assert(codepoint == -1);
 		utf8[8] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 6, NULL); assert(codepoint == -1);
+		codepoint = 0;
+	}
+
+	// example from RFC 3629
+	{
+		int bytes = 0;
+		int codepoint = 0;
+		
+		const char* a_x_X_dot = "\x41\xE2\x89\xA2\xCE\x91\x2E";
+		const char* hangugeo = "\xED\x95\x9C\xEA\xB5\xAD\xEC\x96\xB4";
+		const char* nihongo = "\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E";
+		const char* stump_of_tree = "\xF0\xA3\x8E\xB4";
+
+		codepoint = UTF8_to_Codepoint(a_x_X_dot + 0, &bytes); assert(codepoint==0x0041 && bytes==1);
+		codepoint = UTF8_to_Codepoint(a_x_X_dot + 1, &bytes); assert(codepoint==0x2262 && bytes==3);
+		codepoint = UTF8_to_Codepoint(a_x_X_dot + 4, &bytes); assert(codepoint==0x0391 && bytes==2);
+		codepoint = UTF8_to_Codepoint(a_x_X_dot + 6, &bytes); assert(codepoint==0x002E && bytes==1);
+		
+		codepoint = UTF8_to_Codepoint(hangugeo + 0, &bytes); assert(codepoint==0xD55C && bytes==3);
+		codepoint = UTF8_to_Codepoint(hangugeo + 3, &bytes); assert(codepoint==0xAD6D && bytes==3);
+		codepoint = UTF8_to_Codepoint(hangugeo + 6, &bytes); assert(codepoint==0xC5B4 && bytes==3);
+		
+		codepoint = UTF8_to_Codepoint(nihongo + 0, &bytes); assert(codepoint==0x65E5 && bytes==3);
+		codepoint = UTF8_to_Codepoint(nihongo + 3, &bytes); assert(codepoint==0x672C && bytes==3);
+		codepoint = UTF8_to_Codepoint(nihongo + 6, &bytes); assert(codepoint==0x8A9E && bytes==3);
+
+		codepoint = UTF8_to_Codepoint(stump_of_tree + 0, &bytes); assert(codepoint==0x233B4 && bytes==4);
 		codepoint = 0;
 	}
 }
