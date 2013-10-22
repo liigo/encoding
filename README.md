@@ -1,6 +1,8 @@
 encoding
 ========
-to decode "percent encoding" string to utf-8, to convert from/to unicode codepoint and utf-8 chars. by Liigo, 2013-10.
+to decode "percent encoding" string to utf-8, to convert from/to unicode codepoint and utf-8 chars.
+
+by Liigo, Oct. 2013.
 
 ###How to use
 See encoding.h header:

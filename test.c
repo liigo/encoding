@@ -14,7 +14,7 @@ void writefile(const char* data, const char* file)
 
 void test(const char* text, const char* encoding, const char* file)
 {
-	writefile(unencode_to_utf8(text, encoding), file);
+	writefile(decode_to_utf8(text, encoding), file);
 }
 
 int main()
