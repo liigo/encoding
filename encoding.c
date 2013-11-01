@@ -13,7 +13,7 @@ static int CharHexMap[] = {
 	-1,-1,-1,-1,-1, -1,-1,-1,-1,                                     // 120-128
 };
 
-// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 3 chars buffer, best for 6 chars.
+// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer, best for 6 chars.
 // return the bytes count used in utf-8.
 int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 {
@@ -29,6 +29,12 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 		utf8[1] = (char) (0x80 | ((codepoint >> 6) & 0x3F)); // 10xxxxxx
 		utf8[2] = (char) (0x80 | (codepoint & 0x3F));        // 10xxxxxx
 		return 3;
+	} else if(codepoint <= 0x10FFFF) {
+		utf8[0] = (char) (0xF0 | (codepoint >> 18));          // 11110xxx
+		utf8[1] = (char) (0x80 | ((codepoint >> 12) & 0x3F)); // 10xxxxxx
+		utf8[2] = (char) (0x80 | ((codepoint >> 6) & 0x3F));  // 10xxxxxx
+		utf8[3] = (char) (0x80 | (codepoint & 0x3F));         // 10xxxxxx
+		return 4;
 	}
 	return 0;
 }
@@ -50,6 +56,12 @@ unsigned int UTF8_to_Codepoint(const char* utf8, int* bytes)
 		unsigned char b3 = (unsigned char) utf8[2];
 		if(bytes) *bytes = 3;
 		return (((unsigned int)b1 & 0x0F) << 12) | (((unsigned int)b2 & 0x3F) << 6) | (b3 & 0x3F);
+	} else if((b1 >> 3) == 0x1E) { // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+		unsigned char b2 = (unsigned char) utf8[1];
+		unsigned char b3 = (unsigned char) utf8[2];
+		unsigned char b4 = (unsigned char) utf8[3];
+		if(bytes) *bytes = 4;
+		return (((unsigned int)b1 & 0x07) << 18) | (((unsigned int)b2 & 0x3F) << 12) | (((unsigned int)b3 & 0x3F) << 6) | (b4 & 0x3F);
 	}
 	return 0;
 }
@@ -73,15 +85,27 @@ static const char* eval_percent_chars(const char* pArg)
 				*pr++ = (char)CharHexMap[p[1]];
 				p += 2;
 				continue;
-			} else if((p[1] == 'u' || p[1] == 'U') && p[2] > 0 && p[3] > 0 && p[4] > 0 && p[5] > 0) { // %uABCD
+			} else if((p[1] == 'u') && p[2] > 0 && p[3] > 0 && p[4] > 0 && p[5] > 0) { // %uABCD
 				int a = CharHexMap[p[2]], b = CharHexMap[p[3]];
 				int c = CharHexMap[p[4]], d = CharHexMap[p[5]];
 				if(a >= 0 && b >= 0 && c >= 0 && d >= 0) {
-					unsigned int codepoint = ((((unsigned char)a << 4) | b) << 8) | (((unsigned char)c << 4) | d);
+					unsigned int codepoint = (a<<12) | (b<<8) | (c<<4) | d;
 					int bytes = Codepoint_to_UTF8(codepoint, pr);
 					pr += bytes;
 				}
 				p += 6;
+				continue;
+			} else if((p[1] == 'U') && p[2] > 0 && p[3] > 0 && p[4] > 0 && p[5] > 0 && p[6] > 0 && p[7] > 0 && p[8] > 0 && p[9] > 0) { // %U0A0B0C0D
+				int a = CharHexMap[p[2]], b = CharHexMap[p[3]];
+				int c = CharHexMap[p[4]], d = CharHexMap[p[5]];
+				int e = CharHexMap[p[6]], f = CharHexMap[p[7]];
+				int g = CharHexMap[p[8]], h = CharHexMap[p[9]];
+				if(a >= 0 && b >= 0 && c >= 0 && d >= 0 && e >= 0 && f >= 0 && g >= 0 && h >= 0) {
+					unsigned int codepoint = ((unsigned int)a<<28) | (b<<24) | (c<<20) | (d<<16) | (e<<12) | (f<<8) | (g<<4) | h;
+					int bytes = Codepoint_to_UTF8(codepoint, pr);
+					pr += bytes;
+				}
+				p += 10;
 				continue;
 			} else if(p[1] > 0 && p[2] > 0) { // %AB
 				int a = CharHexMap[p[1]], b = CharHexMap[p[2]];
@@ -165,7 +189,7 @@ const char* Percent_GB18030_to_UTF8(const char* pArg)
 	return NULL;
 }
 
-// %uABCD ->> ...
+// %uABCD %U0A0B0C0D ->> ...
 // Need free() returned value
 const char* Percent_Unicode_to_UTF8(const char* pArg)
 {
