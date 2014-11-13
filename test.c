@@ -31,7 +31,7 @@ int main()
 
 	{
 		int bytes;
-		unsigned int codepoint = 0;
+		int codepoint = 0;
 		unsigned char utf8[] = { 0xe6,0x98,0xaf, 0xe8,0x80,0x81, 0xe5,0xa4,0xa7, // 是老大
 						0xe4,0xba,0x8e, 0xe8,0xae,0xba, 0xe5,0x9d,0x9b, // 于论坛
 						0xe9,0xbd,0x89, 0xe7,0x88,0xa8, // 齉爨
@@ -48,6 +48,11 @@ int main()
 		codepoint = UTF8_to_Codepoint(utf8 +21, &bytes); assert(codepoint==0x7228 && bytes==3); // 爨
 		codepoint = UTF8_to_Codepoint(utf8 +24, &bytes); assert(codepoint==0x0002A6A5 && bytes==4); // 龍×4
 		codepoint = UTF8_to_Codepoint(utf8 +28, &bytes); assert(codepoint==0x0002B81D && bytes==4); // 敞+鱼+电（上中下结构，鱼无横）
+		
+		// test invalid utf8 stream
+		utf8[0] = 0xFF; codepoint = UTF8_to_Codepoint(utf8 + 0, NULL); assert(codepoint == -1);
+		utf8[4] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 3, NULL); assert(codepoint == -1);
+		utf8[8] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 6, NULL); assert(codepoint == -1);
 		codepoint = 0;
 	}
 }

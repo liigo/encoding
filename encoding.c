@@ -1,4 +1,5 @@
 #include "encoding.h"
+#include <assert.h>
 
 #include <Windows.h>
 
@@ -13,7 +14,7 @@ static int CharHexMap[] = {
 	-1,-1,-1,-1,-1, -1,-1,-1,-1,                                     // 120-128
 };
 
-// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer, best for 6 chars.
+// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
 // return the bytes count used in utf-8.
 int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 {
@@ -39,31 +40,37 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 	return 0;
 }
 
-// Convert a utf-8 encoded char to Unicode codepoint.
-// return codepoint, and bytes count used in utf-8 if bytes != NULL.
-unsigned int UTF8_to_Codepoint(const char* utf8, int* bytes)
+// Convert an utf-8 encoded stream to an Unicode codepoint, along with utf-8 validation.
+// return codepoint, and bytes count used in utf8 if bytes != NULL.
+// return -1 if met invalid utf-8 stream.
+int UTF8_to_Codepoint(const char* utf8, int* bytes)
 {
-	unsigned char b1 = (unsigned char) *utf8;
+	unsigned char b1;
+    assert(utf8 && "require non-NULL utf8 stream");
+	b1 = (unsigned char) *utf8;
 	if((b1 >> 7) == 0) { // 0xxxxxxx
 		if(bytes) *bytes = 1;
-		return b1;
+		return (int)b1;
 	} else if((b1 >> 5) == 0x06) { // 110xxxxx 10xxxxxx
 		unsigned char b2 = (unsigned char) utf8[1];
+        if(b2 >> 6 != 0x02) return -1;
 		if(bytes) *bytes = 2;
-		return (((unsigned int)b1 & 0x1F) << 6) | (b2 & 0x3F);
+		return (int) ((((unsigned int)b1 & 0x1F) << 6) | (b2 & 0x3F));
 	} else if((b1 >> 4) == 0x0E) { // 1110xxxx 10xxxxxx 10xxxxxx
 		unsigned char b2 = (unsigned char) utf8[1];
 		unsigned char b3 = (unsigned char) utf8[2];
+        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02) return -1;
 		if(bytes) *bytes = 3;
-		return (((unsigned int)b1 & 0x0F) << 12) | (((unsigned int)b2 & 0x3F) << 6) | (b3 & 0x3F);
+		return (int) ((((unsigned int)b1 & 0x0F) << 12) | (((unsigned int)b2 & 0x3F) << 6) | (b3 & 0x3F));
 	} else if((b1 >> 3) == 0x1E) { // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 		unsigned char b2 = (unsigned char) utf8[1];
 		unsigned char b3 = (unsigned char) utf8[2];
 		unsigned char b4 = (unsigned char) utf8[3];
+        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02 || b4 >> 6 != 0x02) return -1;
 		if(bytes) *bytes = 4;
-		return (((unsigned int)b1 & 0x07) << 18) | (((unsigned int)b2 & 0x3F) << 12) | (((unsigned int)b3 & 0x3F) << 6) | (b4 & 0x3F);
+		return (int) ((((unsigned int)b1 & 0x07) << 18) | (((unsigned int)b2 & 0x3F) << 12) | (((unsigned int)b3 & 0x3F) << 6) | (b4 & 0x3F));
 	}
-	return 0;
+	return -1;
 }
 
 // %AB%AB%AB ->> ABABAB
