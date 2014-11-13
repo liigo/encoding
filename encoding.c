@@ -1,7 +1,12 @@
 #include "encoding.h"
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
-#include <Windows.h>
+#if defined(_WIN32) || defined(_WIN64)
+	#include <Windows.h>
+#endif
+
 
 // CharHexMap[char]
 static int CharHexMap[] = {
@@ -130,6 +135,8 @@ static const char* eval_percent_chars(const char* pArg)
 	return pReturn;
 }
 
+
+#if defined(_WIN32) || defined(_WIN64)
 // Need free() returned value
 const WCHAR* GB18030_to_WChars(const char* pGB)
 {
@@ -150,7 +157,9 @@ const WCHAR* GB18030_to_WChars(const char* pGB)
 		return (const WCHAR*) pReturn;
 	}
 }
+#endif // defined(_WIN32) || defined(_WIN64)
 
+#if defined(_WIN32) || defined(_WIN64)
 // Need free() returned value
 const char* WChars_to_UTF8(const WCHAR* pWChars)
 {
@@ -171,6 +180,8 @@ const char* WChars_to_UTF8(const WCHAR* pWChars)
 		return (const char*) pReturn;
 	}
 }
+#endif // defined(_WIN32) || defined(_WIN64)
+
 
 // %AB%AB%AB ->> ABABAB
 // Need free() returned value
@@ -179,6 +190,7 @@ const char* Percent_UTF8_to_UTF8(const char* pArg)
 	return eval_percent_chars(pArg);
 }
 
+#if defined(_WIN32) || defined(_WIN64)
 // %AB%AB ->> ...
 // Need free() returned value
 const char* Percent_GB18030_to_UTF8(const char* pArg)
@@ -195,6 +207,7 @@ const char* Percent_GB18030_to_UTF8(const char* pArg)
 	}
 	return NULL;
 }
+#endif // defined(_WIN32) || defined(_WIN64)
 
 // %uABCD %U0A0B0C0D ->> ...
 // Need free() returned value
@@ -210,10 +223,11 @@ const char* decode_to_utf8(const char* pArg, const char* encoding)
 
 	if(strcmp(encoding, "%utf8") == 0)
 		return Percent_UTF8_to_UTF8(pArg);
-	else if(strcmp(encoding, "%gb") == 0)
-		return Percent_GB18030_to_UTF8(pArg);
 	else if(strcmp(encoding, "%u") == 0)
 		return Percent_Unicode_to_UTF8(pArg);
+#if defined(_WIN32) || defined(_WIN64)
+	else if(strcmp(encoding, "%gb") == 0)
+		return Percent_GB18030_to_UTF8(pArg);
 	else if(strcmp(encoding, "wchars") == 0)
 		return WChars_to_UTF8((const WCHAR*)pArg);
 	else if(strcmp(encoding, "gb") == 0) {
@@ -224,5 +238,6 @@ const char* decode_to_utf8(const char* pArg, const char* encoding)
 			return utf8chars;
 		}
 	}
+#endif
 	return NULL;
 }

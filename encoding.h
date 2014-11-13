@@ -1,8 +1,12 @@
 #ifndef __TOPSERVER_ENCODING__
 #define __TOPSERVER_ENCODING__
 
+// https://github.com/liigo/encoding
+// by Liigo, 2013-2014.
+
 // Decode text that encoded by enconding.
 // encoding: now supporting "%utf8", "%gb", "%u", "wchars", "gb"
+// note: "%gb", "gb" and "wchars" are supported only on Windows platform.
 const char* decode_to_utf8(const char* pArg, const char* encoding);
 
 // Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
