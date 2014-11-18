@@ -1,23 +1,29 @@
 encoding
 ========
-to decode "percent encoding" string to utf-8, to convert between unicode codepoint and utf-8 bytes.
+to convert between unicode codepoint and utf-8 bytes, to decode "percent encoding" string to utf-8.
 
-by Liigo, Oct. 2013.
+by Liigo, Oct. 2013 - Nov. 2014.
 
 ###How to use
 See encoding.h header:
 
 	// Decode text that encoded by enconding.
 	// encoding: now supporting "%utf8", "%gb", "%u", "wchars", "gb"
+	// note: "%gb", "gb" and "wchars" are supported only on Windows platform.
 	const char* decode_to_utf8(const char* pArg, const char* encoding);
 
-	// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer, best for 6 chars.
+	// Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
 	// return the bytes count used in utf-8.
 	int Codepoint_to_UTF8(unsigned int codepoint, char* utf8);
 
-	// Convert a utf-8 encoded char to Unicode codepoint.
-	// return codepoint, and bytes count used in utf-8 if bytes != NULL.
-	unsigned int UTF8_to_Codepoint(const char* utf8, int* bytes);
+	// Convert an utf-8 encoded stream to an Unicode codepoint, along with utf-8 validation.
+	// return codepoint, and bytes count used in utf8 if bytes != NULL.
+	// return -1 if met invalid utf-8 stream.
+	int UTF8_to_Codepoint(const char* utf8, int* bytes);
+
+	// from specified position, find the last leading-byte of a utf-8 encoded character,
+	// returns its index in buf, or returns 0 if not find.
+	int rfind_utf8_leading_byte_index(char* buf, int from);
 
 and the test.c for testing and usage:
 
@@ -39,7 +45,7 @@ and the test.c for testing and usage:
 
 		{
 			int bytes;
-			unsigned int codepoint = 0;
+			int codepoint = 0;
 			unsigned char utf8[] = { 0xe6,0x98,0xaf, 0xe8,0x80,0x81, 0xe5,0xa4,0xa7, // 是老大
 							0xe4,0xba,0x8e, 0xe8,0xae,0xba, 0xe5,0x9d,0x9b, // 于论坛
 							0xe9,0xbd,0x89, 0xe7,0x88,0xa8, // 齉爨
@@ -56,6 +62,11 @@ and the test.c for testing and usage:
 			codepoint = UTF8_to_Codepoint(utf8 +21, &bytes); assert(codepoint==0x7228 && bytes==3); // 爨
 			codepoint = UTF8_to_Codepoint(utf8 +24, &bytes); assert(codepoint==0x0002A6A5 && bytes==4); // 龍×4
 			codepoint = UTF8_to_Codepoint(utf8 +28, &bytes); assert(codepoint==0x0002B81D && bytes==4); // 敞+鱼+电（上中下结构，鱼无横）
+			
+			// test invalid utf8 stream
+			utf8[0] = 0xFF; codepoint = UTF8_to_Codepoint(utf8 + 0, NULL); assert(codepoint == -1);
+			utf8[4] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 3, NULL); assert(codepoint == -1);
+			utf8[8] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 6, NULL); assert(codepoint == -1);
 			codepoint = 0;
 		}
 	}
@@ -69,4 +80,4 @@ and the test.c for testing and usage:
 		}
 	}
 
-Have a good day.
+Have a good day!
