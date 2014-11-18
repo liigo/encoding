@@ -241,3 +241,17 @@ const char* decode_to_utf8(const char* pArg, const char* encoding)
 #endif
 	return NULL;
 }
+
+// from specified position, find the last leading-byte of a utf-8 encoded character,
+// returns its index in buf, or returns 0 if not find.
+int rfind_utf8_leading_byte_index(char* buf, int from) {
+    while(from >= 0) {
+        unsigned char c = buf[0];
+        // utf-8 leading bytes: 0-, 110-, 1110-, 11110-
+        if(c>>7==0 || c>>5==6 || c>>4==14 || c>>3==30) {
+            return from;
+        }
+        from--;
+    }
+    return 0;
+}

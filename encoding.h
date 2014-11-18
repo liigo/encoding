@@ -18,5 +18,8 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8);
 // return -1 if met invalid utf-8 stream.
 int UTF8_to_Codepoint(const char* utf8, int* bytes);
 
+// from specified position, find the last leading-byte of a utf-8 encoded character,
+// returns its index in buf, or returns 0 if not find.
+int rfind_utf8_leading_byte_index(char* buf, int from);
 
 #endif //__TOPSERVER_ENCODING__
