@@ -22,7 +22,7 @@ static int CharHexMap[] = {
 // Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
 // return the bytes count used in utf-8.
 // return 0 if the codepoint is invalid.
-int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
+int codepoint_to_utf8(unsigned int codepoint, char* utf8)
 {
 	if(codepoint <= 0x7F) {
 		utf8[0] = (char)codepoint;
@@ -32,7 +32,7 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 		utf8[1] = (char) (0x80 | (codepoint & 0x3F)); // 10xxxxxx
 		return 2;
 	} else if(codepoint <= 0xDFFF) {
-		return 0; // surrogate pairs
+		return 0; // surrogate code point
 	} else if(codepoint <= 0xFFFF) {
 		utf8[0] = (char) (0xE0 | (codepoint >> 12));         // 1110xxxx
 		utf8[1] = (char) (0x80 | ((codepoint >> 6) & 0x3F)); // 10xxxxxx
@@ -51,7 +51,7 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 // Convert an utf-8 encoded stream to an Unicode codepoint, along with utf-8 validation.
 // return codepoint, and bytes count used in utf8 if bytes != NULL.
 // return -1 if met invalid utf-8 stream.
-int UTF8_to_Codepoint(const char* utf8, int* bytes)
+int utf8_to_codepoint(const char* utf8, int* bytes)
 {
 	unsigned char b1;
     assert(utf8 && "require non-NULL utf8 stream");
@@ -111,7 +111,7 @@ static const char* eval_percent_chars(const char* pArg)
 				int c = CharHexMap[p[4]], d = CharHexMap[p[5]];
 				if(a >= 0 && b >= 0 && c >= 0 && d >= 0) {
 					unsigned int codepoint = (a<<12) | (b<<8) | (c<<4) | d;
-					int bytes = Codepoint_to_UTF8(codepoint, pr);
+					int bytes = codepoint_to_utf8(codepoint, pr);
 					pr += bytes;
 				}
 				p += 6;
@@ -123,7 +123,7 @@ static const char* eval_percent_chars(const char* pArg)
 				int g = CharHexMap[p[8]], h = CharHexMap[p[9]];
 				if(a >= 0 && b >= 0 && c >= 0 && d >= 0 && e >= 0 && f >= 0 && g >= 0 && h >= 0) {
 					unsigned int codepoint = ((unsigned int)a<<28) | (b<<24) | (c<<20) | (d<<16) | (e<<12) | (f<<8) | (g<<4) | h;
-					int bytes = Codepoint_to_UTF8(codepoint, pr);
+					int bytes = codepoint_to_utf8(codepoint, pr);
 					pr += bytes;
 				}
 				p += 10;
@@ -226,21 +226,21 @@ const char* Percent_Unicode_to_UTF8(const char* pArg)
 }
 
 // Need free() returned value
-const char* decode_to_utf8(const char* pArg, const char* encoding)
+const char* decode_to_utf8(const char* text, const char* encoding)
 {
-	if(pArg == NULL || encoding == NULL) return NULL;
+	if(text == NULL || encoding == NULL) return NULL;
 
 	if(strcmp(encoding, "%utf8") == 0)
-		return Percent_UTF8_to_UTF8(pArg);
+		return Percent_UTF8_to_UTF8(text);
 	else if(strcmp(encoding, "%u") == 0)
-		return Percent_Unicode_to_UTF8(pArg);
+		return Percent_Unicode_to_UTF8(text);
 #if defined(_WIN32) || defined(_WIN64)
 	else if(strcmp(encoding, "%gb") == 0)
-		return Percent_GB18030_to_UTF8(pArg);
+		return Percent_GB18030_to_UTF8(text);
 	else if(strcmp(encoding, "wchars") == 0)
-		return WChars_to_UTF8((const WCHAR*)pArg);
+		return WChars_to_UTF8((const WCHAR*)text);
 	else if(strcmp(encoding, "gb") == 0) {
-		const WCHAR* pWChars = GB18030_to_WChars(pArg);
+		const WCHAR* pWChars = GB18030_to_WChars(text);
 		if(pWChars) {
 			const char* utf8chars = WChars_to_UTF8(pWChars);
 			free((char*)pWChars);
