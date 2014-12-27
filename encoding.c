@@ -21,6 +21,7 @@ static int CharHexMap[] = {
 
 // Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
 // return the bytes count used in utf-8.
+// return 0 if the codepoint is invalid.
 int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 {
 	if(codepoint <= 0x7F) {
@@ -30,7 +31,9 @@ int Codepoint_to_UTF8(unsigned int codepoint, char* utf8)
 		utf8[0] = (char) (0x90 | (codepoint >> 6));   // 110xxxxx
 		utf8[1] = (char) (0x80 | (codepoint & 0x3F)); // 10xxxxxx
 		return 2;
-	} else if(codepoint <= 0xD7FF || (codepoint >= 0xE000 && codepoint <= 0xFFFF)) {
+	} else if(codepoint <= 0xDFFF) {
+		return 0; // surrogate pairs
+	} else if(codepoint <= 0xFFFF) {
 		utf8[0] = (char) (0xE0 | (codepoint >> 12));         // 1110xxxx
 		utf8[1] = (char) (0x80 | ((codepoint >> 6) & 0x3F)); // 10xxxxxx
 		utf8[2] = (char) (0x80 | (codepoint & 0x3F));        // 10xxxxxx
@@ -57,21 +60,27 @@ int UTF8_to_Codepoint(const char* utf8, int* bytes)
 		if(bytes) *bytes = 1;
 		return (int)b1;
 	} else if((b1 >> 5) == 0x06) { // 110xxxxx 10xxxxxx
-		unsigned char b2 = (unsigned char) utf8[1];
-        if(b2 >> 6 != 0x02) return -1;
+		unsigned char b2;
+		if((b1 & 0x1E) == 0) return -1; // security guard (if first 4 x bits are all 0, the rest 7 x bits should be encoded as 1 byte 0xxxxxxx)
+		b2 = (unsigned char) utf8[1];
+        if(b2 >> 6 != 0x02) return -1; // check validity
 		if(bytes) *bytes = 2;
 		return (int) ((((unsigned int)b1 & 0x1F) << 6) | (b2 & 0x3F));
 	} else if((b1 >> 4) == 0x0E) { // 1110xxxx 10xxxxxx 10xxxxxx
-		unsigned char b2 = (unsigned char) utf8[1];
-		unsigned char b3 = (unsigned char) utf8[2];
-        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02) return -1;
+		unsigned char b2, b3;
+		b2 = (unsigned char) utf8[1];
+		if((b1 & 0x0F) == 0 && (b2 & 0x20) == 0) return -1; // security guard (if first 5 x bits are all 0, the rest 11 x bits should be encoded as 2 bytes 110xxxxx 10xxxxxx)
+		b3 = (unsigned char) utf8[2];
+        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02) return -1; // check validity
 		if(bytes) *bytes = 3;
 		return (int) ((((unsigned int)b1 & 0x0F) << 12) | (((unsigned int)b2 & 0x3F) << 6) | (b3 & 0x3F));
 	} else if((b1 >> 3) == 0x1E) { // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-		unsigned char b2 = (unsigned char) utf8[1];
-		unsigned char b3 = (unsigned char) utf8[2];
-		unsigned char b4 = (unsigned char) utf8[3];
-        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02 || b4 >> 6 != 0x02) return -1;
+		unsigned char b2, b3, b4;
+		b2 = (unsigned char) utf8[1];
+		if((b1 & 0x07) == 0 && (b2 && 0x30) == 0) return -1; // security guard (if first 5 x bits are all 0, the rest 16 x bits should be encoded as 3 bytes 1110xxxx 10xxxxxx 10xxxxxx)
+		b3 = (unsigned char) utf8[2];
+		b4 = (unsigned char) utf8[3];
+        if(b2 >> 6 != 0x02 || b3 >> 6 != 0x02 || b4 >> 6 != 0x02) return -1; // check validity
 		if(bytes) *bytes = 4;
 		return (int) ((((unsigned int)b1 & 0x07) << 18) | (((unsigned int)b2 & 0x3F) << 12) | (((unsigned int)b3 & 0x3F) << 6) | (b4 & 0x3F));
 	}

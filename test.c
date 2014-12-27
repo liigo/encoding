@@ -29,6 +29,7 @@ int main()
 	// 龍×4, 敞+鱼+电（上中下结构，鱼无横）（这两个都是非常复杂的汉字，是Unicode标准后来新加入的，未必有字体支持其显示）
 	test("Liigo%U0002A6A5%U0002B81D", "%u", "4.txt");
 
+	// test decode utf-8
 	{
 		int bytes = 0;
 		int codepoint = 0;
@@ -55,10 +56,9 @@ int main()
 		utf8[0] = 0xFF; codepoint = UTF8_to_Codepoint(utf8 + 0, NULL); assert(codepoint == -1);
 		utf8[4] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 3, NULL); assert(codepoint == -1);
 		utf8[8] = 0x00; codepoint = UTF8_to_Codepoint(utf8 + 6, NULL); assert(codepoint == -1);
-		codepoint = 0;
 	}
 
-	// example from RFC 3629
+	// test examples from RFC 3629
 	{
 		int bytes = 0;
 		int codepoint = 0;
@@ -82,6 +82,14 @@ int main()
 		codepoint = UTF8_to_Codepoint(nihongo + 6, &bytes); assert(codepoint==0x8A9E && bytes==3);
 
 		codepoint = UTF8_to_Codepoint(stump_of_tree + 0, &bytes); assert(codepoint==0x233B4 && bytes==4);
+	}
+
+	// test security problems in RFC 3629
+	{
+		int bytes = 0;
+		int codepoint = 0;
+		codepoint = UTF8_to_Codepoint("\xC0\x80", NULL); assert(codepoint==-1);
+		codepoint = UTF8_to_Codepoint("\xC0\xAE", NULL); assert(codepoint==-1);
 		codepoint = 0;
 	}
 }

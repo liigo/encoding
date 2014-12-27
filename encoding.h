@@ -11,6 +11,7 @@ const char* decode_to_utf8(const char* pArg, const char* encoding);
 
 // Convert a Unicode codepoint to utf-8 encoded char, arg utf8 should be at least 4 chars buffer.
 // return the bytes count used in utf-8.
+// return 0 if the codepoint is invalid.
 int Codepoint_to_UTF8(unsigned int codepoint, char* utf8);
 
 // Convert an utf-8 encoded stream to an Unicode codepoint, along with utf-8 validation.
