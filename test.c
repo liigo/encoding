@@ -21,7 +21,9 @@ void test(const char* text, const char* encoding, const char* file)
 int main()
 {
 	// Liigo你好
+#if defined(_WIN32) || defined(_WIN64)
 	test("Liigo%C4%E3%BA%C3", "%gb", "1.txt");
+#endif
 	// Liigo高手
 	test("Liigo%E9%AB%98%E6%89%8B", "%utf8", "2.txt");
 	// "Liigo是老大 于 论坛上 求贴解 都被删掉  齉爨"
